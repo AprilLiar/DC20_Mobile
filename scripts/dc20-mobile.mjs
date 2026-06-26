@@ -6,8 +6,8 @@
  * active, a body class hides the desktop interface via CSS.
  */
 
-import { MODULE_ID } from "./const.mjs";
-import { shouldActivate } from "./detection.mjs";
+import { MODULE_ID, ALT_SHEET_MODULE_ID } from "./const.mjs";
+import { shouldActivate, isMobileDevice } from "./detection.mjs";
 import { MobileShell } from "./apps/mobile-shell.mjs";
 
 export { MODULE_ID };
@@ -73,7 +73,33 @@ Hooks.once("init", () => {
   ]);
 });
 
+/**
+ * On a phone/tablet, scale the DC20 Alternative Character Sheet down so it fits
+ * the smaller screen: UI scale 0.75 (its minimum) and font size 1. Both are
+ * client-scoped settings on the alt-sheet module, so this only affects this
+ * device and won't change other players' preferences. No-op if the alt-sheet
+ * module isn't active, its settings aren't registered yet, or the value already
+ * matches (avoids a redundant re-render).
+ */
+async function applyMobileAltSheetDefaults() {
+  if (!isMobileDevice()) return;
+  if (game.modules.get(ALT_SHEET_MODULE_ID)?.active !== true) return;
+
+  const desired = { uiScale: 0.75, fontScale: 1 };
+  for (const [key, value] of Object.entries(desired)) {
+    const id = `${ALT_SHEET_MODULE_ID}.${key}`;
+    if (!game.settings.settings.has(id)) continue;
+    if (game.settings.get(ALT_SHEET_MODULE_ID, key) === value) continue;
+    try {
+      await game.settings.set(ALT_SHEET_MODULE_ID, key, value);
+    } catch (err) {
+      console.warn(`dc20-mobile | failed to set ${id}`, err);
+    }
+  }
+}
+
 Hooks.once("ready", () => {
+  applyMobileAltSheetDefaults();
   if (shouldActivate()) activateMobile();
 });
 
