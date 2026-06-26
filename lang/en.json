@@ -6,6 +6,8 @@
   "DC20MOBILE.Nav.NoToken": "No token on this scene",
   "DC20MOBILE.Nav.NoTokens": "No tokens on this scene",
   "DC20MOBILE.Nav.NoCharacters": "You don't own any characters",
+  "DC20MOBILE.Char.EnableModuleTitle": "Alternative Character Sheet required",
+  "DC20MOBILE.Char.EnableModuleBody": "The mobile Character tab uses the DC20 Alternative Character Sheet. Please install and enable this module:",
   "DC20MOBILE.Settings.MobileMode.Name": "Mobile Mode",
   "DC20MOBILE.Settings.MobileMode.Hint": "Controls when the mobile interface replaces the desktop UI on this device.",
   "DC20MOBILE.Settings.MobileMode.Auto": "Auto (detect device)",

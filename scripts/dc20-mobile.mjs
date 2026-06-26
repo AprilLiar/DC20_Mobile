@@ -86,7 +86,8 @@ function tagPopupWindow(app, html) {
   const el = html instanceof HTMLElement ? html : html?.[0] ?? html?.element;
   if (!el?.classList) return;
   if (el.id === "dc20-mobile-shell") return;
-  if (el.classList.contains("dc20-sheet-fullscreen") || el.classList.contains("dc20-sheet-hidden")) return;
+  // The embedded character sheet manages its own fullscreen layout.
+  if (el.classList.contains("dc20-alt-sheet")) return;
   el.classList.add("dc20-mobile-popup");
 }
 

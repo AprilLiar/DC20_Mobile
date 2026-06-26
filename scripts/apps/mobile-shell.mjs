@@ -2,19 +2,40 @@
  * MobileShell — the full-screen, frameless ApplicationV2 that replaces the
  * desktop UI on mobile devices. It hosts two tabs:
  *   - Navigation: character switcher, 8-direction movement D-pad, targeting.
- *   - Character: the actor's DC20 character sheet shown full-screen.
+ *   - Character: the DC20 Alternative Character Sheet shown full-screen.
  *
- * For the Character tab we render the actor's existing sheet via the normal
- * Foundry window pipeline and then CSS-force it to fill the viewport. The tab
- * bar is position:fixed at z-index 10001, above the sheet's z-index 5000.
+ * For the Character tab we render the alt sheet (an ApplicationV2 ActorSheetV2)
+ * once and keep it mounted. Its visibility is driven entirely by the body
+ * tab-class (`dc20-tab-character` / `dc20-tab-navigation`) so it never needs to
+ * be re-opened or re-positioned when switching tabs or when it re-renders on a
+ * value change. CSS targets the sheet's own stable `.dc20-alt-sheet` class.
  */
 
-import { MODULE_ID } from "../const.mjs";
+import { MODULE_ID, ALT_SHEET_MODULE_ID } from "../const.mjs";
 import { getOwnedCharacters, getSelectedActor, setSelectedActor } from "../state.mjs";
 import { getActorToken, stepToken } from "../movement.mjs";
 import { getSceneTokens, isTargeted, toggleTarget } from "../targeting.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+/** @returns {boolean} Whether the alt-sheet module is installed and active. */
+export function isAltSheetAvailable() {
+  return game.modules.get(ALT_SHEET_MODULE_ID)?.active === true;
+}
+
+/**
+ * Resolve the alt sheet's class from the actor sheet registry. The module
+ * registers it via Actors.registerSheet(ALT_SHEET_MODULE_ID, DC20AltCharacterSheet),
+ * so it appears in CONFIG.Actor.sheetClasses.character keyed by module id.
+ * @returns {typeof foundry.applications.api.ApplicationV2 | null}
+ */
+function getAltSheetClass() {
+  const registered = CONFIG.Actor?.sheetClasses?.character ?? {};
+  for (const entry of Object.values(registered)) {
+    if (entry?.id?.startsWith(ALT_SHEET_MODULE_ID) && entry.cls) return entry.cls;
+  }
+  return null;
+}
 
 export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {string} The currently visible tab: "navigation" | "character". */
@@ -71,6 +92,8 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
       targetPanelOpen: this.targetPanelOpen,
       sceneTokens,
       targetCount: game.user.targets.size,
+      altSheetAvailable: isAltSheetAvailable(),
+      altSheetModuleId: ALT_SHEET_MODULE_ID,
     };
   }
 
@@ -103,13 +126,20 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
       btn.addEventListener("click", () => this._onToggleTarget(btn.dataset.tokenId))
     );
 
-    if (this.activeTab === "character") this._mountCharacter();
+    // Reflect the active tab on <body> so CSS can show/hide the mounted sheet.
+    document.body.classList.toggle("dc20-tab-character", this.activeTab === "character");
+    document.body.classList.toggle("dc20-tab-navigation", this.activeTab !== "character");
+
+    // Mount the alt sheet lazily the first time the Character tab is shown, then
+    // leave it mounted — visibility is CSS-driven, so returning is instant and
+    // never re-opens (which previously flashed the screen black). It still
+    // re-mounts here if the selected actor changed and the old sheet was torn down.
+    if (this.activeTab === "character" || this._charSheet) this._mountCharacter();
   }
 
   /** Switch the visible tab and re-render. */
   _setTab(tab) {
     if (!tab || tab === this.activeTab) return;
-    if (this.activeTab === "character") this._unmountCharacter();
     this.activeTab = tab;
     this.render();
   }
@@ -136,11 +166,18 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Render the selected actor's DC20 sheet (if needed) and make it fullscreen
-   * via CSS. The sheet lives in Foundry's normal window layer — we just override
-   * its position/size rather than re-parenting its element.
+   * Ensure the selected actor's alt sheet is rendered once and kept mounted.
+   * Visibility is governed by the body tab-class, so this neither re-opens nor
+   * re-positions the sheet on subsequent calls — it only (re)renders when the
+   * selected actor changes or the sheet was closed. No-op if the alt-sheet
+   * module isn't enabled (the Character tab shows an "enable me" notice instead).
    */
   async _mountCharacter() {
+    if (!isAltSheetAvailable()) {
+      this._teardownCharacter();
+      return;
+    }
+
     const actor = getSelectedActor();
     if (!actor) {
       this._teardownCharacter();
@@ -150,46 +187,23 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this._charSheet && this._charActorId !== actor.id) this._teardownCharacter();
 
     if (!this._charSheet) {
-      this._charSheet = actor.sheet;
+      const SheetClass = getAltSheetClass();
+      if (!SheetClass) return;
+      this._charSheet = new SheetClass({ document: actor });
       this._charActorId = actor.id;
     }
 
     if (!this._charSheet.rendered) {
-      await this._charSheet.render(true);
-    }
-
-    const el = this._sheetElement();
-    if (el) {
-      el.classList.remove("dc20-sheet-hidden");
-      el.classList.add("dc20-sheet-fullscreen");
+      await this._charSheet.render({ force: true });
     }
   }
 
-  /** Hide the sheet without closing it so state is preserved on return. */
-  _unmountCharacter() {
-    const el = this._sheetElement();
-    if (el) {
-      el.classList.remove("dc20-sheet-fullscreen");
-      el.classList.add("dc20-sheet-hidden");
-    }
-  }
-
-  /** The raw DOM element of the character sheet (handles AppV1 jQuery + AppV2). */
-  _sheetElement() {
-    const raw = this._charSheet?.element;
-    if (!raw) return null;
-    if (raw instanceof HTMLElement) return raw;
-    return raw[0] ?? null;
-  }
-
-  /** Close and forget the character sheet. */
+  /** Close and forget the alt sheet. */
   _teardownCharacter() {
     try {
-      const el = this._sheetElement();
-      if (el) el.classList.remove("dc20-sheet-fullscreen", "dc20-sheet-hidden");
       this._charSheet?.close();
     } catch (err) {
-      console.warn("dc20-mobile | failed to close embedded sheet", err);
+      console.warn("dc20-mobile | failed to close character sheet", err);
     }
     this._charSheet = null;
     this._charActorId = null;
@@ -198,6 +212,7 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @override */
   async close(options) {
     this._teardownCharacter();
+    document.body.classList.remove("dc20-tab-character", "dc20-tab-navigation");
     return super.close(options);
   }
 }

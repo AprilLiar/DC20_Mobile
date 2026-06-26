@@ -4,7 +4,16 @@
   </section>
 
   <section class="dc20-tab dc20-tab-character {{#if charActive}}active{{/if}}" data-tab="character">
-    {{#unless hasSelectedActor}}
+    {{#unless altSheetAvailable}}
+      <div class="dc20-enable-notice">
+        <i class="fa-solid fa-puzzle-piece"></i>
+        <div class="dc20-enable-title">{{localize "DC20MOBILE.Char.EnableModuleTitle"}}</div>
+        <div class="dc20-enable-body">
+          {{localize "DC20MOBILE.Char.EnableModuleBody"}}
+          <br><code>{{altSheetModuleId}}</code>
+        </div>
+      </div>
+    {{else unless hasSelectedActor}}
       <div class="dc20-empty">{{localize "DC20MOBILE.Nav.NoCharacters"}}</div>
     {{/unless}}
   </section>

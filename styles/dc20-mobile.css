@@ -126,7 +126,8 @@ body.dc20-mobile-active #hud {
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
   gap: 0.5em;
-  width: min(80vw, 320px);
+  /* vmin keeps the pad on-screen in BOTH portrait and landscape. */
+  width: min(70vmin, 300px);
   aspect-ratio: 1 / 1;
   margin: 0.5em 0;
 }
@@ -235,13 +236,14 @@ body.dc20-mobile-active #hud {
   text-align: center;
 }
 
-/* --- Character tab: fullscreen character sheet --------------------------- */
-
-/* The DC20 sheet renders normally into the document; we CSS-force it fullscreen.
- * NO z-index override: the sheet keeps Foundry's natural window z-index (~100),
- * which sits above the shell background (z-index 70) but below any roll dialog
- * the sheet spawns — Foundry's bringToTop floats new dialogs above it naturally. */
-body.dc20-mobile-active .dc20-sheet-fullscreen {
+/* --- Character tab: fullscreen DC20 Alt Character Sheet ------------------ *
+ * We render the alt sheet (an ApplicationV2 ActorSheetV2, root class
+ * `.dc20-alt-sheet`) once and keep it mounted. Visibility is driven by a body
+ * tab-class so switching tabs (or the sheet re-rendering on every value change)
+ * never re-opens or re-positions it — which previously flashed half the screen
+ * black. We target the sheet's OWN stable class instead of injecting our own,
+ * because ApplicationV2 re-renders would wipe an injected class. */
+body.dc20-mobile-active.dc20-tab-character .dc20-alt-sheet {
   position: fixed !important;
   /* Explicit four-way override so Foundry's inline top/left values don't win. */
   top: 0 !important;
@@ -267,51 +269,85 @@ body.dc20-mobile-active .dc20-sheet-fullscreen {
   flex-direction: column !important;
   overflow: hidden !important;
 }
-body.dc20-mobile-active .dc20-sheet-fullscreen .window-header,
-body.dc20-mobile-active .dc20-sheet-fullscreen .window-resizable-handle,
-body.dc20-mobile-active .dc20-sheet-fullscreen .window-controls {
+/* Keep the sheet mounted but hidden while the Navigation tab is showing. */
+body.dc20-mobile-active.dc20-tab-navigation .dc20-alt-sheet {
+  display: none !important;
+}
+body.dc20-mobile-active .dc20-alt-sheet > .window-header,
+body.dc20-mobile-active .dc20-alt-sheet .window-resizable-handle,
+body.dc20-mobile-active .dc20-alt-sheet .window-resize-handle,
+body.dc20-mobile-active .dc20-alt-sheet .window-controls {
   display: none !important;
 }
 /* Scroll in BOTH directions so the right-hand columns are reachable.
  * min-height: 0 is critical — without it the flex child expands to fit its
  * content, overflow never triggers, and the sheet appears unscrollable. */
-body.dc20-mobile-active .dc20-sheet-fullscreen .window-content {
+body.dc20-mobile-active.dc20-tab-character .dc20-alt-sheet > .window-content {
   flex: 1 1 0 !important;
   min-height: 0 !important;
   width: 100% !important;
   max-height: none !important;
   overflow: auto !important;
   -webkit-overflow-scrolling: touch;
-  /* Allow two-finger / one-finger pan in both axes on touch screens. */
+  /* Allow one-finger pan in both axes on touch screens. */
   touch-action: pan-x pan-y;
   scrollbar-width: auto;
   /* Pad so the last row isn't hidden behind the fixed tab bar. */
   padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
 }
-body.dc20-mobile-active .dc20-sheet-hidden {
-  display: none !important;
-}
 
 /* Big, easy-to-grab scrollbars for touch (applies on Android/desktop; iOS uses
  * native overlay scrollbars but still pans by touch). */
-body.dc20-mobile-active .dc20-sheet-fullscreen .window-content::-webkit-scrollbar,
+body.dc20-mobile-active .dc20-alt-sheet .window-content::-webkit-scrollbar,
 body.dc20-mobile-active .dc20-mobile-popup .window-content::-webkit-scrollbar {
   width: 16px;
   height: 16px;
 }
-body.dc20-mobile-active .dc20-sheet-fullscreen .window-content::-webkit-scrollbar-thumb,
+body.dc20-mobile-active .dc20-alt-sheet .window-content::-webkit-scrollbar-thumb,
 body.dc20-mobile-active .dc20-mobile-popup .window-content::-webkit-scrollbar-thumb {
   background: var(--color-warm-2, #ff9b4d);
   border: 3px solid rgba(0, 0, 0, 0.35);
   border-radius: 8px;
 }
-body.dc20-mobile-active .dc20-sheet-fullscreen .window-content::-webkit-scrollbar-track,
+body.dc20-mobile-active .dc20-alt-sheet .window-content::-webkit-scrollbar-track,
 body.dc20-mobile-active .dc20-mobile-popup .window-content::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.3);
 }
-body.dc20-mobile-active .dc20-sheet-fullscreen .window-content::-webkit-scrollbar-corner,
+body.dc20-mobile-active .dc20-alt-sheet .window-content::-webkit-scrollbar-corner,
 body.dc20-mobile-active .dc20-mobile-popup .window-content::-webkit-scrollbar-corner {
   background: rgba(0, 0, 0, 0.3);
+}
+
+/* Notice shown in the Character tab when the alt-sheet module isn't enabled. */
+.dc20-enable-notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75em;
+  height: 100%;
+  padding: 1.5em;
+  text-align: center;
+}
+.dc20-enable-notice i {
+  font-size: 2.4em;
+  color: var(--color-warm-2, #ff9b4d);
+  opacity: 0.9;
+}
+.dc20-enable-notice .dc20-enable-title {
+  font-size: 1.15em;
+  font-weight: bold;
+}
+.dc20-enable-notice .dc20-enable-body {
+  font-size: 0.95em;
+  opacity: 0.8;
+  max-width: 28em;
+  line-height: 1.4;
+}
+.dc20-enable-notice code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
 }
 
 /* --- Roll dialogs and other popups while mobile mode is active ----------- *
@@ -335,4 +371,28 @@ body.dc20-mobile-active .dc20-mobile-popup .window-content {
   max-height: 80vh !important;
   overflow: auto !important;
   -webkit-overflow-scrolling: touch;
+}
+
+/* --- Landscape layout (the default orientation for v2) ------------------- *
+ * In landscape the Navigation tab arranges its controls in two columns so the
+ * D-pad and the character/targeting controls sit side by side instead of
+ * stacking off the bottom of a short viewport. The Character tab's alt sheet
+ * already fills the viewport regardless of orientation. */
+@media (orientation: landscape) {
+  .dc20-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+    justify-content: center;
+    gap: 1em 2em;
+  }
+  .dc20-switcher,
+  .dc20-target-toggle,
+  .dc20-target-list {
+    width: min(45%, 360px);
+  }
+  .dc20-dpad {
+    width: min(60vmin, 260px);
+  }
 }
