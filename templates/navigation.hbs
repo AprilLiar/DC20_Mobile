@@ -1,0 +1,51 @@
+<div class="dc20-nav">
+  <div class="dc20-switcher">
+    {{#if hasCharacters}}
+      <label class="dc20-switcher-label">{{localize "DC20MOBILE.Nav.Character"}}</label>
+      <select class="dc20-actor-select">
+        {{#each characters}}
+          <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
+        {{/each}}
+      </select>
+    {{else}}
+      <div class="dc20-empty">{{localize "DC20MOBILE.Nav.NoCharacters"}}</div>
+    {{/if}}
+  </div>
+
+  <div class="dc20-dpad {{#unless hasToken}}disabled{{/unless}}">
+    <button type="button" class="dc20-dpad-btn pos-nw" data-dx="-1" data-dy="-1" aria-label="Up-Left"><i class="fa-solid fa-arrow-up-left"></i></button>
+    <button type="button" class="dc20-dpad-btn pos-n"  data-dx="0"  data-dy="-1" aria-label="Up"><i class="fa-solid fa-arrow-up"></i></button>
+    <button type="button" class="dc20-dpad-btn pos-ne" data-dx="1"  data-dy="-1" aria-label="Up-Right"><i class="fa-solid fa-arrow-up-right"></i></button>
+    <button type="button" class="dc20-dpad-btn pos-w"  data-dx="-1" data-dy="0"  aria-label="Left"><i class="fa-solid fa-arrow-left"></i></button>
+    <div class="dc20-dpad-center"><i class="fa-solid fa-location-crosshairs"></i></div>
+    <button type="button" class="dc20-dpad-btn pos-e"  data-dx="1"  data-dy="0"  aria-label="Right"><i class="fa-solid fa-arrow-right"></i></button>
+    <button type="button" class="dc20-dpad-btn pos-sw" data-dx="-1" data-dy="1"  aria-label="Down-Left"><i class="fa-solid fa-arrow-down-left"></i></button>
+    <button type="button" class="dc20-dpad-btn pos-s"  data-dx="0"  data-dy="1"  aria-label="Down"><i class="fa-solid fa-arrow-down"></i></button>
+    <button type="button" class="dc20-dpad-btn pos-se" data-dx="1"  data-dy="1"  aria-label="Down-Right"><i class="fa-solid fa-arrow-down-right"></i></button>
+  </div>
+
+  {{#unless hasToken}}
+    <div class="dc20-notice">{{localize "DC20MOBILE.Nav.NoToken"}}</div>
+  {{/unless}}
+
+  <button type="button" class="dc20-target-toggle {{#if targetPanelOpen}}open{{/if}}">
+    <i class="fa-solid fa-bullseye"></i>
+    <span>{{localize "DC20MOBILE.Nav.Targeting"}}</span>
+    {{#if targetCount}}<span class="dc20-badge">{{targetCount}}</span>{{/if}}
+  </button>
+
+  {{#if targetPanelOpen}}
+    <div class="dc20-target-list">
+      {{#if sceneTokens.length}}
+        {{#each sceneTokens}}
+          <button type="button" class="dc20-target-item {{#if this.targeted}}targeted{{/if}}" data-token-id="{{this.id}}">
+            <i class="fa-solid {{#if this.targeted}}fa-bullseye{{else}}fa-circle{{/if}}"></i>
+            <span>{{this.name}}</span>
+          </button>
+        {{/each}}
+      {{else}}
+        <div class="dc20-empty">{{localize "DC20MOBILE.Nav.NoTokens"}}</div>
+      {{/if}}
+    </div>
+  {{/if}}
+</div>

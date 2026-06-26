@@ -1,0 +1,14 @@
+{
+  "DC20MOBILE.Tab.Navigation": "Navigation",
+  "DC20MOBILE.Tab.Character": "Character",
+  "DC20MOBILE.Nav.Character": "Character",
+  "DC20MOBILE.Nav.Targeting": "Targeting",
+  "DC20MOBILE.Nav.NoToken": "No token on this scene",
+  "DC20MOBILE.Nav.NoTokens": "No tokens on this scene",
+  "DC20MOBILE.Nav.NoCharacters": "You don't own any characters",
+  "DC20MOBILE.Settings.MobileMode.Name": "Mobile Mode",
+  "DC20MOBILE.Settings.MobileMode.Hint": "Controls when the mobile interface replaces the desktop UI on this device.",
+  "DC20MOBILE.Settings.MobileMode.Auto": "Auto (detect device)",
+  "DC20MOBILE.Settings.MobileMode.On": "Always On",
+  "DC20MOBILE.Settings.MobileMode.Off": "Always Off"
+}

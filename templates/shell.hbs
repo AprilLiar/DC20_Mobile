@@ -1,0 +1,23 @@
+<div class="dc20-mobile-root">
+  <section class="dc20-tab dc20-tab-navigation {{#if navActive}}active{{/if}}" data-tab="navigation">
+    {{> "modules/dc20-mobile/templates/navigation.hbs" }}
+  </section>
+
+  <section class="dc20-tab dc20-tab-character {{#if charActive}}active{{/if}}" data-tab="character">
+    <div class="dc20-character-host"></div>
+    {{#unless hasSelectedActor}}
+      <div class="dc20-empty">{{localize "DC20MOBILE.Nav.NoCharacters"}}</div>
+    {{/unless}}
+  </section>
+
+  <nav class="dc20-tabbar">
+    <button type="button" class="dc20-tabbtn {{#if navActive}}active{{/if}}" data-tab="navigation">
+      <i class="fa-solid fa-gamepad"></i>
+      <span>{{localize "DC20MOBILE.Tab.Navigation"}}</span>
+    </button>
+    <button type="button" class="dc20-tabbtn {{#if charActive}}active{{/if}}" data-tab="character">
+      <i class="fa-solid fa-id-card"></i>
+      <span>{{localize "DC20MOBILE.Tab.Character"}}</span>
+    </button>
+  </nav>
+</div>

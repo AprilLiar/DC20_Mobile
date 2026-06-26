@@ -1,0 +1,40 @@
+{
+  "id": "dc20-mobile",
+  "title": "DC20 Mobile",
+  "description": "Mobile and tablet support for the DC20 RPG system. When a non-GM player connects from a touch device, the desktop interface is replaced with a simplified, portrait-first UI: a Navigation tab (token movement D-pad, character switcher, targeting) and a Character tab showing the full DC20 character sheet.",
+  "version": "0.1.0",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
+  "authors": [
+    {
+      "name": "AprilLiar"
+    }
+  ],
+  "esmodules": [
+    "scripts/dc20-mobile.mjs"
+  ],
+  "styles": [
+    "styles/dc20-mobile.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "relationships": {
+    "systems": [
+      {
+        "id": "dc20rpg",
+        "type": "system",
+        "compatibility": {
+          "minimum": "0.10.0"
+        }
+      }
+    ]
+  },
+  "url": "https://github.com/aprilliar/dc20_mobile"
+}
