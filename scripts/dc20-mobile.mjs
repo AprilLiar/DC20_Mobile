@@ -72,6 +72,28 @@ for (const hook of ["createToken", "deleteToken", "updateToken", "canvasReady", 
 Hooks.on("targetToken", requestRefresh);
 Hooks.on("updateActor", requestRefresh);
 
+/**
+ * Tag any window that pops up while mobile mode is active (e.g. DC20 roll
+ * dialogs) with `dc20-mobile-popup` so the CSS can re-center and size it to the
+ * viewport. The shell and the embedded character sheet are left untouched —
+ * they have their own fullscreen styling.
+ * @param {Application|ApplicationV2} app  The application being rendered.
+ * @param {HTMLElement|JQuery} html        Its root element (jQuery on AppV1).
+ */
+function tagPopupWindow(app, html) {
+  if (!isActive()) return;
+  if (app === shell || app === shell?._charSheet) return;
+  const el = html instanceof HTMLElement ? html : html?.[0] ?? html?.element;
+  if (!el?.classList) return;
+  if (el.id === "dc20-mobile-shell") return;
+  if (el.classList.contains("dc20-sheet-fullscreen") || el.classList.contains("dc20-sheet-hidden")) return;
+  el.classList.add("dc20-mobile-popup");
+}
+
+// AppV1 (legacy) and AppV2 fire different render hooks; cover both.
+Hooks.on("renderApplication", tagPopupWindow);
+Hooks.on("renderApplicationV2", tagPopupWindow);
+
 // Expose a small API for debugging / manual control.
 Hooks.once("ready", () => {
   game.modules.get(MODULE_ID).api = { activateMobile, deactivateMobile, isActive };

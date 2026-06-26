@@ -237,7 +237,11 @@ body.dc20-mobile-active #hud {
 
 /* --- Character tab: fullscreen character sheet --------------------------- */
 
-/* The DC20 sheet renders normally into the document; we CSS-force it fullscreen. */
+/* The DC20 sheet renders normally into the document; we CSS-force it fullscreen.
+ * IMPORTANT: we do NOT force a z-index here. The sheet keeps Foundry's natural
+ * window z-index (~100), which sits above the shell background (z-index 70) but
+ * below any roll dialog the sheet spawns — Foundry's bringToTop puts new dialogs
+ * on top automatically. Forcing a high z-index here would bury those dialogs. */
 body.dc20-mobile-active .dc20-sheet-fullscreen {
   position: fixed !important;
   inset: 0 !important;
@@ -250,21 +254,67 @@ body.dc20-mobile-active .dc20-sheet-fullscreen {
   border-radius: 0 !important;
   border: none !important;
   box-shadow: none !important;
-  z-index: 5000 !important;
 }
 body.dc20-mobile-active .dc20-sheet-fullscreen .window-header,
 body.dc20-mobile-active .dc20-sheet-fullscreen .window-resizable-handle,
 body.dc20-mobile-active .dc20-sheet-fullscreen .window-controls {
   display: none !important;
 }
+/* Scroll in BOTH directions so the right-hand columns are reachable. */
 body.dc20-mobile-active .dc20-sheet-fullscreen .window-content {
   height: 100% !important;
   max-height: none !important;
-  overflow-y: auto !important;
+  overflow: auto !important;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: auto;
   /* Pad so the last row isn't hidden behind the fixed tab bar */
   padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
 }
 body.dc20-mobile-active .dc20-sheet-hidden {
   display: none !important;
+}
+
+/* Big, easy-to-grab scrollbars for touch (applies on Android/desktop; iOS uses
+ * native overlay scrollbars but still pans by touch). */
+body.dc20-mobile-active .dc20-sheet-fullscreen .window-content::-webkit-scrollbar,
+body.dc20-mobile-active .dc20-mobile-popup .window-content::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+body.dc20-mobile-active .dc20-sheet-fullscreen .window-content::-webkit-scrollbar-thumb,
+body.dc20-mobile-active .dc20-mobile-popup .window-content::-webkit-scrollbar-thumb {
+  background: var(--color-warm-2, #ff9b4d);
+  border: 3px solid rgba(0, 0, 0, 0.35);
+  border-radius: 8px;
+}
+body.dc20-mobile-active .dc20-sheet-fullscreen .window-content::-webkit-scrollbar-track,
+body.dc20-mobile-active .dc20-mobile-popup .window-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+body.dc20-mobile-active .dc20-sheet-fullscreen .window-content::-webkit-scrollbar-corner,
+body.dc20-mobile-active .dc20-mobile-popup .window-content::-webkit-scrollbar-corner {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* --- Roll dialogs and other popups while mobile mode is active ----------- *
+ * DC20 frequently opens roll-prompt dialogs. On a phone, their desktop-computed
+ * position/size leaves them off-screen or oversized. We tag every non-shell,
+ * non-sheet window with `.dc20-mobile-popup` (see scripts/dc20-mobile.mjs) and
+ * re-center + size it to the viewport. The tab bar (z-index 10001) stays above. */
+body.dc20-mobile-active .dc20-mobile-popup {
+  position: fixed !important;
+  left: 50% !important;
+  top: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  width: min(96vw, 540px) !important;
+  max-width: 96vw !important;
+  max-height: 88vh !important;
+  margin: 0 !important;
+}
+body.dc20-mobile-active .dc20-mobile-popup .window-content {
+  max-height: 80vh !important;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch;
 }
