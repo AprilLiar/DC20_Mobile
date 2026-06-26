@@ -27,8 +27,30 @@ Game Masters keep the normal desktop interface even on mobile (unless they set
 
 ## Installation
 
-Install the DC20 system first, then add this module via its manifest URL and
-enable it in your world. The module only loads when the `dc20rpg` system is active.
+1. Make sure the [DC20 RPG system](https://foundryvtt.com/packages/dc20rpg) is
+   installed (this module only loads when the `dc20rpg` system is active).
+2. In Foundry, go to **Add-on Modules → Install Module** and paste one of the
+   manifest URLs below into the **Manifest URL** field, then click **Install**.
+3. Enable **DC20 Mobile** in your world (**Manage Modules**).
+
+### Manifest URL
+
+**Latest release** (recommended — supports in-app update checks):
+
+```
+https://github.com/AprilLiar/DC20_Mobile/releases/latest/download/module.json
+```
+
+**Current `main` branch** (track the latest development version directly):
+
+```
+https://raw.githubusercontent.com/AprilLiar/DC20_Mobile/main/module.json
+```
+
+> The latest-release URL requires a GitHub release that attaches `module.json`
+> and a packaged `module.zip`, with matching `manifest`/`download` fields in
+> `module.json`. Until a release is published, use the `main`-branch manifest
+> URL above.
 
 ## How it works
 
