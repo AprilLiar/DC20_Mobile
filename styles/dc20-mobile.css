@@ -238,36 +238,54 @@ body.dc20-mobile-active #hud {
 /* --- Character tab: fullscreen character sheet --------------------------- */
 
 /* The DC20 sheet renders normally into the document; we CSS-force it fullscreen.
- * IMPORTANT: we do NOT force a z-index here. The sheet keeps Foundry's natural
- * window z-index (~100), which sits above the shell background (z-index 70) but
- * below any roll dialog the sheet spawns — Foundry's bringToTop puts new dialogs
- * on top automatically. Forcing a high z-index here would bury those dialogs. */
+ * NO z-index override: the sheet keeps Foundry's natural window z-index (~100),
+ * which sits above the shell background (z-index 70) but below any roll dialog
+ * the sheet spawns — Foundry's bringToTop floats new dialogs above it naturally. */
 body.dc20-mobile-active .dc20-sheet-fullscreen {
   position: fixed !important;
+  /* Explicit four-way override so Foundry's inline top/left values don't win. */
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   inset: 0 !important;
   width: 100vw !important;
-  height: 100vh !important;
+  /* dvh = dynamic viewport height; adjusts for mobile browser chrome. */
+  height: 100dvh !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
   max-width: none !important;
   max-height: none !important;
   margin: 0 !important;
+  padding: 0 !important;
   transform: none !important;
   border-radius: 0 !important;
   border: none !important;
   box-shadow: none !important;
+  /* Force the window to be a flex column so hiding the header leaves zero gap. */
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
 }
 body.dc20-mobile-active .dc20-sheet-fullscreen .window-header,
 body.dc20-mobile-active .dc20-sheet-fullscreen .window-resizable-handle,
 body.dc20-mobile-active .dc20-sheet-fullscreen .window-controls {
   display: none !important;
 }
-/* Scroll in BOTH directions so the right-hand columns are reachable. */
+/* Scroll in BOTH directions so the right-hand columns are reachable.
+ * min-height: 0 is critical — without it the flex child expands to fit its
+ * content, overflow never triggers, and the sheet appears unscrollable. */
 body.dc20-mobile-active .dc20-sheet-fullscreen .window-content {
-  height: 100% !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  width: 100% !important;
   max-height: none !important;
   overflow: auto !important;
   -webkit-overflow-scrolling: touch;
+  /* Allow two-finger / one-finger pan in both axes on touch screens. */
+  touch-action: pan-x pan-y;
   scrollbar-width: auto;
-  /* Pad so the last row isn't hidden behind the fixed tab bar */
+  /* Pad so the last row isn't hidden behind the fixed tab bar. */
   padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
 }
 body.dc20-mobile-active .dc20-sheet-hidden {
