@@ -18,6 +18,13 @@
       <button type="button" class="dc20-dpad-btn pos-n"  data-dx="0"  data-dy="-1" aria-label="Up"><i class="fa-solid fa-arrow-up"></i></button>
       <button type="button" class="dc20-dpad-btn pos-ne" data-dx="1"  data-dy="-1" aria-label="Up-Right"><i class="fa-solid fa-arrow-up-right"></i></button>
       <button type="button" class="dc20-dpad-btn pos-w"  data-dx="-1" data-dy="0"  aria-label="Left"><i class="fa-solid fa-arrow-left"></i></button>
+      <div class="dc20-dpad-center">
+        {{#if selectedPortrait}}
+          <img src="{{selectedPortrait}}" alt="{{selectedName}}" />
+        {{else}}
+          <i class="fa-solid fa-user"></i>
+        {{/if}}
+      </div>
       <button type="button" class="dc20-dpad-btn pos-e"  data-dx="1"  data-dy="0"  aria-label="Right"><i class="fa-solid fa-arrow-right"></i></button>
       <button type="button" class="dc20-dpad-btn pos-sw" data-dx="-1" data-dy="1"  aria-label="Down-Left"><i class="fa-solid fa-arrow-down-left"></i></button>
       <button type="button" class="dc20-dpad-btn pos-s"  data-dx="0"  data-dy="1"  aria-label="Down"><i class="fa-solid fa-arrow-down"></i></button>

@@ -64,11 +64,12 @@ body.dc20-mobile-active #hud {
 .dc20-tabbtn {
   flex: 1 1 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 0.2em;
-  padding: 0.75em 0.5em;
+  gap: 0.5em;
+  /* 0.45em vertical = ~40% less than the previous 0.75em footer height. */
+  padding: 0.45em 0.5em;
   background: none;
   border: none;
   color: inherit;
@@ -77,7 +78,7 @@ body.dc20-mobile-active #hud {
   opacity: 0.7;
 }
 .dc20-tabbtn i {
-  font-size: 1.6em;
+  font-size: 1.2em;
 }
 .dc20-tabbtn.active {
   opacity: 1;
@@ -92,7 +93,7 @@ body.dc20-mobile-active #hud {
   align-items: center;
   gap: 1em;
   padding: 1em;
-  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   height: 100%;
 }
@@ -118,9 +119,12 @@ body.dc20-mobile-active #hud {
 }
 .dc20-actor-select {
   width: 100%;
-  padding: 0.75em 0.6em;
-  font-size: 1em;
-  line-height: 1.5;
+  /* Smaller text + tighter padding so a long character name isn't clipped. */
+  padding: 0.5em 0.55em;
+  font-size: 0.85em;
+  line-height: 1.4;
+  height: auto;
+  text-overflow: ellipsis;
   background: rgba(255, 255, 255, 0.08);
   color: inherit;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -159,6 +163,29 @@ body.dc20-mobile-active #hud {
 .dc20-dpad.disabled {
   opacity: 0.35;
   pointer-events: none;
+}
+
+/* Center cell: the selected character's portrait, a symmetrical square that
+ * fills its slot so the pad reads as a clean 3x3 grid with the arrows. */
+.dc20-dpad-center {
+  grid-area: 2 / 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+}
+.dc20-dpad-center img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.dc20-dpad-center i {
+  font-size: 1.6em;
+  opacity: 0.4;
 }
 
 .pos-nw { grid-area: 1 / 1; }
@@ -257,7 +284,7 @@ body.dc20-mobile-active.dc20-tab-character .dc20-alt-sheet {
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
-  bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+  bottom: calc(46px + env(safe-area-inset-bottom, 0px)) !important;
   /* height is auto-computed from top + bottom; don't also set it. */
   /* Use the JS-measured viewport width (--dc20-mobile-vw) so the sheet matches
    * the actual browser pixel width, not 100vw which includes scrollbar gutter. */

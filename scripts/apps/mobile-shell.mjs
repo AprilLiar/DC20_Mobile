@@ -91,6 +91,8 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
       hasCharacters: characters.length > 0,
       characters,
       hasSelectedActor: !!selected,
+      selectedName: selected?.name ?? "",
+      selectedPortrait: selected?.img || selected?.prototypeToken?.texture?.src || "",
       hasToken: !!token,
       targetPanelOpen: this.targetPanelOpen,
       sceneTokens,
