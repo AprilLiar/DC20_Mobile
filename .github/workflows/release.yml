@@ -1,10 +1,18 @@
 name: Release
 
-# Publish a Foundry-installable release whenever a version tag is pushed.
+# Publish a Foundry-installable release. Triggered either by pushing a version
+# tag, or manually (workflow_dispatch) with a version input — the manual path
+# creates the tag itself, which is handy when tags can't be pushed directly.
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag to release (e.g. v0.1.0)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -16,9 +24,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set release URLs in module.json
         env:
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.tag.outputs.tag }}
           REPO: ${{ github.repository }}
         run: |
           node -e '
@@ -47,9 +64,10 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.tag.outputs.tag }}
         run: |
           gh release create "$TAG" \
             module.json module.zip \
+            --target "${{ github.sha }}" \
             --title "$TAG" \
             --notes "DC20 Mobile $TAG. Install in Foundry via the manifest URL: https://github.com/${{ github.repository }}/releases/latest/download/module.json"
