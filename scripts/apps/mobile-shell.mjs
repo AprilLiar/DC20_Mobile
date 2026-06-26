@@ -107,7 +107,10 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
     const root = this.element;
 
     root.querySelectorAll(".dc20-tabbtn").forEach((btn) =>
-      btn.addEventListener("click", () => this._setTab(btn.dataset.tab))
+      btn.addEventListener("click", () => {
+        if (btn.dataset.action === "settings") this._openSettings();
+        else this._setTab(btn.dataset.tab);
+      })
     );
 
     root.querySelectorAll(".dc20-dpad-btn").forEach((btn) =>
@@ -140,6 +143,16 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
     // never re-opens (which previously flashed the screen black). It still
     // re-mounts here if the selected actor changed and the old sheet was torn down.
     if (this.activeTab === "character" || this._charSheet) this._mountCharacter();
+  }
+
+  /**
+   * Open Foundry's Game Settings window. It's rendered as a normal popup, so the
+   * `renderApplicationV2` hook tags it `.dc20-mobile-popup` and the CSS centers
+   * and sizes it to the viewport. Re-rendering brings an already-open one to the
+   * front rather than spawning a duplicate.
+   */
+  _openSettings() {
+    game.settings.sheet.render(true);
   }
 
   /** Switch the visible tab and re-render. */

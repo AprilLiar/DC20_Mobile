@@ -2,7 +2,7 @@
   "id": "dc20-mobile",
   "title": "DC20 Mobile",
   "description": "Mobile and tablet support for the DC20 RPG system. When a non-GM player connects from a touch device, the desktop interface is replaced with a simplified, landscape-first UI: a Navigation tab (token movement D-pad, character switcher, targeting) and a Character tab showing the DC20 Alternative Character Sheet full-screen.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "compatibility": {
     "minimum": "13",
     "verified": "13"
