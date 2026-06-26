@@ -20,9 +20,20 @@ export function isActive() {
   return shell !== null;
 }
 
+/**
+ * Measure the actual browser viewport width (excludes scrollbar, matches what
+ * the device truly renders) and publish it as --dc20-mobile-vw so CSS can use
+ * it instead of 100vw, which can overshoot by the scrollbar width.
+ */
+function syncViewportWidth() {
+  document.documentElement.style.setProperty("--dc20-mobile-vw", window.innerWidth + "px");
+}
+
 /** Activate the mobile UI: hide the desktop interface and render the shell. */
 export function activateMobile() {
   if (shell) return;
+  syncViewportWidth();
+  window.addEventListener("resize", syncViewportWidth);
   document.body.classList.add("dc20-mobile-active");
   shell = new MobileShell();
   shell.render(true);
@@ -30,6 +41,7 @@ export function activateMobile() {
 
 /** Deactivate the mobile UI and restore the desktop interface. */
 export function deactivateMobile() {
+  window.removeEventListener("resize", syncViewportWidth);
   document.body.classList.remove("dc20-mobile-active");
   shell?.close();
   shell = null;

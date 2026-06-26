@@ -97,6 +97,13 @@ body.dc20-mobile-active #hud {
   height: 100%;
 }
 
+/* In portrait these wrappers are transparent — children flow directly into
+ * the parent flex column. In landscape they become real layout containers. */
+.dc20-nav-left,
+.dc20-nav-right {
+  display: contents;
+}
+
 .dc20-switcher {
   width: 100%;
   display: flex;
@@ -149,13 +156,6 @@ body.dc20-mobile-active #hud {
   background: var(--color-warm-2, #ff9b4d);
   color: #1a1a1a;
 }
-.dc20-dpad-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4em;
-  opacity: 0.35;
-}
 .dc20-dpad.disabled {
   opacity: 0.35;
   pointer-events: none;
@@ -165,7 +165,6 @@ body.dc20-mobile-active #hud {
 .pos-n  { grid-area: 1 / 2; }
 .pos-ne { grid-area: 1 / 3; }
 .pos-w  { grid-area: 2 / 1; }
-.dc20-dpad-center { grid-area: 2 / 2; }
 .pos-e  { grid-area: 2 / 3; }
 .pos-sw { grid-area: 3 / 1; }
 .pos-s  { grid-area: 3 / 2; }
@@ -207,9 +206,12 @@ body.dc20-mobile-active #hud {
 }
 .dc20-target-list {
   width: 100%;
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 0.35em;
+}
+.dc20-target-list.open {
+  display: flex;
 }
 .dc20-target-item {
   display: flex;
@@ -227,6 +229,10 @@ body.dc20-mobile-active #hud {
 .dc20-target-item.targeted {
   background: rgba(255, 155, 77, 0.25);
   border-color: var(--color-warm-2, #ff9b4d);
+}
+.dc20-target-item.self {
+  border-color: rgba(255, 155, 77, 0.5);
+  font-weight: 600;
 }
 
 .dc20-empty {
@@ -253,7 +259,9 @@ body.dc20-mobile-active.dc20-tab-character .dc20-alt-sheet {
   right: 0 !important;
   bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
   /* height is auto-computed from top + bottom; don't also set it. */
-  width: 100vw !important;
+  /* Use the JS-measured viewport width (--dc20-mobile-vw) so the sheet matches
+   * the actual browser pixel width, not 100vw which includes scrollbar gutter. */
+  width: var(--dc20-mobile-vw, 100%) !important;
   height: auto !important;
   min-width: 0 !important;
   min-height: 0 !important;
@@ -372,26 +380,71 @@ body.dc20-mobile-active .dc20-mobile-popup .window-content {
   -webkit-overflow-scrolling: touch;
 }
 
-/* --- Landscape layout (the default orientation for v2) ------------------- *
- * In landscape the Navigation tab arranges its controls in two columns so the
- * D-pad and the character/targeting controls sit side by side instead of
- * stacking off the bottom of a short viewport. The Character tab's alt sheet
- * already fills the viewport regardless of orientation. */
+/* --- Landscape layout ---------------------------------------------------- *
+ * Left column: character switcher + D-pad. Right column: 3-column token grid
+ * (always visible — no toggle needed). Both columns scroll independently. */
 @media (orientation: landscape) {
   .dc20-nav {
     flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    align-content: flex-start;
-    justify-content: center;
-    gap: 1em 2em;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 0.75em 1.25em;
+    overflow: hidden; /* nav itself doesn't scroll; children do */
+    padding: 0.75em;
+    padding-bottom: 0;
   }
-  .dc20-switcher,
-  .dc20-target-toggle,
-  .dc20-target-list {
-    width: min(45%, 360px);
+
+  /* Left column: switcher + D-pad stacked, scrollable if viewport is tiny */
+  .dc20-nav-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75em;
+    flex-shrink: 0;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  /* Right column: fills remaining space, scrollable */
+  .dc20-nav-right {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .dc20-switcher {
+    width: min(52vmin, 240px);
+  }
+
   .dc20-dpad {
-    width: min(60vmin, 260px);
+    width: min(52vmin, 240px);
+  }
+
+  /* Target toggle is replaced by the always-visible grid in landscape */
+  .dc20-target-toggle {
+    display: none !important;
+  }
+
+  /* 3-column token grid — always visible regardless of targetPanelOpen */
+  .dc20-target-list {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr);
+    align-content: start;
+    gap: 0.35em;
+    width: 100%;
+  }
+
+  /* Compact items in the grid */
+  .dc20-target-item {
+    padding: 0.45em 0.4em;
+    font-size: 0.875em;
+  }
+  .dc20-target-item > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

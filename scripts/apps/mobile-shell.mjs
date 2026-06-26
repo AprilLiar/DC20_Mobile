@@ -80,7 +80,10 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
       id: t.id,
       name: t.name || t.actor?.name || "—",
       targeted: isTargeted(t),
+      isSelf: !!(token && t.id === token.id),
     }));
+    // Put the selected actor's own token first.
+    sceneTokens.sort((a, b) => (b.isSelf ? 1 : 0) - (a.isSelf ? 1 : 0));
 
     return {
       navActive: this.activeTab === "navigation",
