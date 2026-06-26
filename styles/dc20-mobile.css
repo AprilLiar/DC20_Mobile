@@ -4,7 +4,6 @@
  * ========================================================================= */
 
 /* --- Hide the desktop interface while mobile mode is active --------------- */
-body.dc20-mobile-active #interface,
 body.dc20-mobile-active #board,
 body.dc20-mobile-active #pause,
 body.dc20-mobile-active #hotbar,
@@ -50,10 +49,16 @@ body.dc20-mobile-active #hud {
 
 /* --- Bottom tab bar ------------------------------------------------------ */
 .dc20-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10001;
   display: flex;
-  flex: 0 0 auto;
   border-top: 2px solid rgba(255, 255, 255, 0.15);
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 .dc20-tabbtn {
@@ -87,6 +92,7 @@ body.dc20-mobile-active #hud {
   align-items: center;
   gap: 1em;
   padding: 1em;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   height: 100%;
 }
@@ -105,8 +111,9 @@ body.dc20-mobile-active #hud {
 }
 .dc20-actor-select {
   width: 100%;
-  padding: 0.6em;
-  font-size: 1.05em;
+  padding: 0.75em 0.6em;
+  font-size: 1em;
+  line-height: 1.5;
   background: rgba(255, 255, 255, 0.08);
   color: inherit;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -228,39 +235,36 @@ body.dc20-mobile-active #hud {
   text-align: center;
 }
 
-/* --- Character tab: embedded DC20 sheet ---------------------------------- */
-.dc20-character-host {
-  flex: 1 1 auto;
-  min-height: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
+/* --- Character tab: fullscreen character sheet --------------------------- */
 
-/* Strip the window chrome from the embedded AppV1 DC20 sheet and let it fill. */
-.dc20-character-host .dc20-embedded {
-  position: static !important;
-  inset: auto !important;
-  left: auto !important;
-  top: auto !important;
-  width: 100% !important;
-  height: 100% !important;
+/* The DC20 sheet renders normally into the document; we CSS-force it fullscreen. */
+body.dc20-mobile-active .dc20-sheet-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
   max-width: none !important;
   max-height: none !important;
   margin: 0 !important;
   transform: none !important;
-  border: none !important;
   border-radius: 0 !important;
+  border: none !important;
   box-shadow: none !important;
+  z-index: 5000 !important;
 }
-.dc20-character-host .dc20-embedded .window-header,
-.dc20-character-host .dc20-embedded .window-resizable-handle {
+body.dc20-mobile-active .dc20-sheet-fullscreen .window-header,
+body.dc20-mobile-active .dc20-sheet-fullscreen .window-resizable-handle,
+body.dc20-mobile-active .dc20-sheet-fullscreen .window-controls {
   display: none !important;
 }
-.dc20-character-host .dc20-embedded .window-content {
-  width: 100% !important;
+body.dc20-mobile-active .dc20-sheet-fullscreen .window-content {
   height: 100% !important;
   max-height: none !important;
-  overflow: auto !important;
+  overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
+  /* Pad so the last row isn't hidden behind the fixed tab bar */
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
+}
+body.dc20-mobile-active .dc20-sheet-hidden {
+  display: none !important;
 }

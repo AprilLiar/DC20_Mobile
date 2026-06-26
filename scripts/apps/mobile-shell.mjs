@@ -2,11 +2,11 @@
  * MobileShell — the full-screen, frameless ApplicationV2 that replaces the
  * desktop UI on mobile devices. It hosts two tabs:
  *   - Navigation: character switcher, 8-direction movement D-pad, targeting.
- *   - Character: the actor's existing DC20 character sheet, embedded full-screen.
+ *   - Character: the actor's DC20 character sheet shown full-screen.
  *
- * The DC20 sheet is a legacy AppV1 ActorSheet. We render its own instance and
- * re-parent its element into our Character tab, stripping the window chrome via
- * CSS. The sheet instance is kept on this app and re-attached after each render.
+ * For the Character tab we render the actor's existing sheet via the normal
+ * Foundry window pipeline and then CSS-force it to fill the viewport. The tab
+ * bar is position:fixed at z-index 10001, above the sheet's z-index 5000.
  */
 
 import { MODULE_ID } from "../const.mjs";
@@ -103,13 +103,13 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
       btn.addEventListener("click", () => this._onToggleTarget(btn.dataset.tokenId))
     );
 
-    // Keep the embedded character sheet attached across re-renders.
     if (this.activeTab === "character") this._mountCharacter();
   }
 
   /** Switch the visible tab and re-render. */
   _setTab(tab) {
     if (!tab || tab === this.activeTab) return;
+    if (this.activeTab === "character") this._unmountCharacter();
     this.activeTab = tab;
     this.render();
   }
@@ -136,13 +136,11 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Ensure the selected actor's DC20 sheet is rendered and embedded into the
-   * Character tab host element.
+   * Render the selected actor's DC20 sheet (if needed) and make it fullscreen
+   * via CSS. The sheet lives in Foundry's normal window layer — we just override
+   * its position/size rather than re-parenting its element.
    */
   async _mountCharacter() {
-    const host = this.element.querySelector(".dc20-character-host");
-    if (!host) return;
-
     const actor = getSelectedActor();
     if (!actor) {
       this._teardownCharacter();
@@ -154,26 +152,41 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._charSheet) {
       this._charSheet = actor.sheet;
       this._charActorId = actor.id;
-      await this._charSheet._render(true);
+    }
+
+    if (!this._charSheet.rendered) {
+      await this._charSheet.render(true);
     }
 
     const el = this._sheetElement();
     if (el) {
-      el.classList.add("dc20-embedded");
-      if (el.parentElement !== host) host.replaceChildren(el);
+      el.classList.remove("dc20-sheet-hidden");
+      el.classList.add("dc20-sheet-fullscreen");
     }
   }
 
-  /** The raw DOM element of the embedded sheet (AppV1 uses jQuery). */
+  /** Hide the sheet without closing it so state is preserved on return. */
+  _unmountCharacter() {
+    const el = this._sheetElement();
+    if (el) {
+      el.classList.remove("dc20-sheet-fullscreen");
+      el.classList.add("dc20-sheet-hidden");
+    }
+  }
+
+  /** The raw DOM element of the character sheet (handles AppV1 jQuery + AppV2). */
   _sheetElement() {
     const raw = this._charSheet?.element;
     if (!raw) return null;
-    return raw[0] ?? raw;
+    if (raw instanceof HTMLElement) return raw;
+    return raw[0] ?? null;
   }
 
-  /** Close and forget the embedded sheet. */
+  /** Close and forget the character sheet. */
   _teardownCharacter() {
     try {
+      const el = this._sheetElement();
+      if (el) el.classList.remove("dc20-sheet-fullscreen", "dc20-sheet-hidden");
       this._charSheet?.close();
     } catch (err) {
       console.warn("dc20-mobile | failed to close embedded sheet", err);
