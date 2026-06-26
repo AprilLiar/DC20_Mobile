@@ -36,5 +36,7 @@
       }
     ]
   },
-  "url": "https://github.com/aprilliar/dc20_mobile"
+  "url": "https://github.com/AprilLiar/DC20_Mobile",
+  "manifest": "https://github.com/AprilLiar/DC20_Mobile/releases/latest/download/module.json",
+  "download": "https://github.com/AprilLiar/DC20_Mobile/releases/download/v0.1.0/module.zip"
 }
