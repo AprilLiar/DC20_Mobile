@@ -13,7 +13,7 @@
 export function getSceneTokens() {
   if (!canvas?.ready) return [];
   return canvas.tokens.placeables
-    .slice()
+    .filter((t) => !t.document.hidden)
     .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
 }
 
