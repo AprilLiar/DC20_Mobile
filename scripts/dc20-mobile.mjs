@@ -47,11 +47,34 @@ function _getCanvasTicker() {
   return canvas?.app?.ticker ?? null;
 }
 
+function _stopAllTickers() {
+  const t = _getCanvasTicker();
+  if (t?.started) t.stop();
+  // Pixi also has shared and system tickers that Foundry uses for tweens and
+  // internal animations. Stop all of them to eliminate every source of GPU work.
+  try { if (PIXI.Ticker?.shared?.started) PIXI.Ticker.shared.stop(); } catch (e) { /* ignore */ }
+  try { if (PIXI.Ticker?.system?.started) PIXI.Ticker.system.stop(); } catch (e) { /* ignore */ }
+}
+
 function throttleCanvas() {
   const t = _getCanvasTicker();
   if (!t) return;
   _savedTickerMaxFPS = t.maxFPS;
-  if (t.started) t.stop(); // full stop — zero GPU work while canvas is hidden
+  _stopAllTickers();
+  // After stopping the ticker, evict GPU textures that are no longer being
+  // rendered — scene backgrounds and token images can be several hundred MB of
+  // VRAM on a typical map. Setting maxIdle=0 makes the GC treat every texture
+  // as stale, then we restore the original threshold so the next canvas session
+  // behaves normally.
+  try {
+    const gc = canvas.app?.renderer?.textureGC;
+    if (gc && typeof gc.run === "function") {
+      const prev = gc.maxIdle;
+      gc.maxIdle = 0;
+      gc.run();
+      gc.maxIdle = prev;
+    }
+  } catch (e) { /* texture GC is best-effort */ }
 }
 
 function unthrottleCanvas() {
@@ -60,22 +83,17 @@ function unthrottleCanvas() {
   t.maxFPS = _savedTickerMaxFPS ?? 0;
   _savedTickerMaxFPS = null;
   if (!t.started) t.start();
+  try { PIXI.Ticker?.shared?.start(); } catch (e) { /* ignore */ }
+  try { PIXI.Ticker?.system?.start(); } catch (e) { /* ignore */ }
 }
 
 /**
- * Page Visibility handler. When iOS backgrounds the tab we ensure the ticker
- * stays stopped; if something restarted it we stop it again on return.
+ * Page Visibility handler. Re-stop all tickers when returning from background
+ * in case Foundry or a module restarted them while the page was hidden.
  */
 function _onVisibilityChange() {
   if (!isActive()) return;
-  const t = _getCanvasTicker();
-  if (!t) return;
-  if (document.visibilityState === "hidden") {
-    if (t.started) t.stop();
-  } else {
-    // Re-stop in case Foundry restarted the ticker while the page was hidden.
-    if (t.started) t.stop();
-  }
+  _stopAllTickers();
 }
 
 /** Activate the mobile UI: hide the desktop interface and render the shell. */
@@ -143,6 +161,9 @@ async function applyMobileAltSheetDefaults() {
     const id = `${ALT_SHEET_MODULE_ID}.${key}`;
     if (!game.settings.settings.has(id)) continue;
     if (game.settings.get(ALT_SHEET_MODULE_ID, key) === value) continue;
+    // Skip settings that require a page reload — triggering one here would cause
+    // an endless reload loop on every launch.
+    if (game.settings.settings.get(id)?.requiresReload) continue;
     try {
       await game.settings.set(ALT_SHEET_MODULE_ID, key, value);
     } catch (err) {
