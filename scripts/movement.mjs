@@ -48,14 +48,15 @@ function isBlockedByWall(origin, destination) {
 export async function stepToken(token, dx, dy) {
   if (!token || !canvas?.ready || (dx === 0 && dy === 0)) return false;
 
-  const size = canvas.grid.size;
-  const origin = token.center;
+  // v14 prefers sizeX/sizeY; fall back to size for older builds.
+  const size = canvas.grid.sizeX ?? canvas.grid.size;
+  const origin = token.center ?? token.getCenterPoint?.() ?? { x: token.x, y: token.y };
   const destination = { x: origin.x + dx * size, y: origin.y + dy * size };
 
   if (isBlockedByWall(origin, destination)) return false;
 
   // Clamp the new top-left corner inside the padded scene rectangle.
-  const rect = canvas.dimensions.rect;
+  const rect = canvas.dimensions?.rect ?? canvas.scene?.dimensions?.rect;
   const tokenW = token.document.width * size;
   const tokenH = token.document.height * size;
   const newX = Math.clamp(token.document.x + dx * size, rect.x, rect.right - tokenW);

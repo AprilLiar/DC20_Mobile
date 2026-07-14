@@ -68,9 +68,9 @@ Hooks.once("init", () => {
     onChange: () => (shouldActivate() ? activateMobile() : deactivateMobile()),
   });
 
-  foundry.applications.handlebars.loadTemplates([
-    `modules/${MODULE_ID}/templates/navigation.hbs`,
-  ]);
+  // v14 moved loadTemplates; fall back to the global for older builds.
+  const loadTemplates = foundry.applications.handlebars?.loadTemplates ?? globalThis.loadTemplates;
+  loadTemplates([`modules/${MODULE_ID}/templates/navigation.hbs`]);
 });
 
 /**
