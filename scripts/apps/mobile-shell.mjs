@@ -50,6 +50,13 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {string|null} Actor id the embedded sheet belongs to. */
   _charActorId = null;
 
+  /**
+   * Movement lock: true while a move is in flight. Rapid D-pad taps that
+   * arrive before the previous update resolves are silently dropped, preventing
+   * parallel token.document.update() calls from flooding the WebSocket.
+   */
+  _moveLocked = false;
+
   static DEFAULT_OPTIONS = {
     id: "dc20-mobile-shell",
     tag: "div",
@@ -164,9 +171,16 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Move the selected actor's token one grid space. */
   async _onMove(dx, dy) {
-    const token = getActorToken(getSelectedActor());
-    if (!token) return;
-    await stepToken(token, dx, dy);
+    if (this._moveLocked) return;
+    this._moveLocked = true;
+    try {
+      const token = getActorToken(getSelectedActor());
+      if (token) await stepToken(token, dx, dy);
+    } finally {
+      // 200ms cooldown: fast enough for intentional rapid moves, long enough
+      // to absorb iOS phantom double-fires from touch events.
+      setTimeout(() => { this._moveLocked = false; }, 200);
+    }
   }
 
   /** Change the selected character, refreshing the embedded sheet. */

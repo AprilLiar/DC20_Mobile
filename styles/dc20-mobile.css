@@ -19,6 +19,19 @@ body.dc20-mobile-active #hud {
   display: none !important;
 }
 
+/* --- iOS stability: prevent overscroll / pull-to-refresh page reload ----- *
+ * On iOS, when a scrollable child hits its scroll boundary the browser can
+ * "receive" the residual scroll and trigger pull-to-refresh or navigate back,
+ * causing a full page reload. Locking overflow on the body and using
+ * overscroll-behavior: contain on every scrollable child breaks the chain. */
+body.dc20-mobile-active {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  /* Disable rubber-band bounce scrolling on the body itself. */
+  -webkit-overflow-scrolling: auto !important;
+  touch-action: pan-x pan-y !important;
+}
+
 /* --- Shell root ---------------------------------------------------------- */
 #dc20-mobile-shell {
   position: fixed;
@@ -61,6 +74,15 @@ body.dc20-mobile-active #hud {
   -webkit-backdrop-filter: blur(8px);
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
+/* Fast, stable taps on iOS: no 300ms delay, no double-tap zoom on any control. */
+.dc20-tabbtn,
+.dc20-dpad-btn,
+.dc20-target-toggle,
+.dc20-target-item,
+.dc20-actor-select {
+  touch-action: manipulation;
+}
+
 .dc20-tabbtn {
   flex: 1 1 0;
   display: flex;
@@ -96,6 +118,8 @@ body.dc20-mobile-active #hud {
   padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   height: 100%;
+  /* Prevent this scroll container from triggering pull-to-refresh on iOS. */
+  overscroll-behavior: contain;
 }
 
 /* In portrait these wrappers are transparent — children flow directly into
@@ -328,6 +352,9 @@ body.dc20-mobile-active.dc20-tab-character .dc20-alt-sheet > .window-content {
   /* Allow one-finger pan in both axes on touch screens. */
   touch-action: pan-x pan-y;
   scrollbar-width: auto;
+  /* Prevent the sheet's scroll boundary from bubbling to the body and
+   * triggering iOS pull-to-refresh / navigate-back page reloads. */
+  overscroll-behavior: contain;
 }
 
 /* Big, easy-to-grab scrollbars for touch (applies on Android/desktop; iOS uses
@@ -440,6 +467,7 @@ body.dc20-mobile-active .dc20-mobile-popup .window-content {
     min-width: 0;
     overflow-y: auto;
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    overscroll-behavior: contain;
   }
 
   .dc20-switcher {

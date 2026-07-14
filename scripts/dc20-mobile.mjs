@@ -29,11 +29,72 @@ function syncViewportWidth() {
   document.documentElement.style.setProperty("--dc20-mobile-vw", window.innerWidth + "px");
 }
 
+/* --------------------------------------------------------------------------
+ * Canvas throttling
+ *
+ * The Pixi.js ticker keeps running at 60fps even when the canvas is hidden by
+ * CSS. On iOS, the GPU load this creates causes the browser to kill the tab
+ * under memory pressure. While mobile mode is active we cap the ticker to 2fps
+ * (enough for the engine to process updates but essentially free in GPU terms).
+ * We also fully stop the ticker when the page is backgrounded and restart it
+ * (still capped) when the page comes back — this also reduces the chance of a
+ * WebSocket timeout triggering Foundry's force-reload.
+ * -------------------------------------------------------------------------- */
+const MOBILE_TICKER_FPS = 2;
+let _savedTickerMaxFPS = null;
+
+function _getCanvasTicker() {
+  return canvas?.app?.ticker ?? null;
+}
+
+function throttleCanvas() {
+  const t = _getCanvasTicker();
+  if (!t) return;
+  _savedTickerMaxFPS = t.maxFPS;
+  t.maxFPS = MOBILE_TICKER_FPS;
+}
+
+function unthrottleCanvas() {
+  const t = _getCanvasTicker();
+  if (!t) return;
+  t.maxFPS = _savedTickerMaxFPS ?? 0;
+  _savedTickerMaxFPS = null;
+}
+
+function _pauseCanvasTicker() {
+  const t = _getCanvasTicker();
+  if (t?.started) t.stop();
+}
+
+function _resumeCanvasTicker() {
+  const t = _getCanvasTicker();
+  if (!t) return;
+  if (!t.started) t.start();
+  t.maxFPS = MOBILE_TICKER_FPS;
+}
+
+/**
+ * Page Visibility handler. When iOS backgrounds the tab the WebSocket may time
+ * out; Foundry reacts by reloading. Pausing the ticker while hidden reduces
+ * memory/CPU pressure and buys more time before the OS kills the tab. On
+ * return we restart at the throttled rate rather than full 60fps.
+ */
+function _onVisibilityChange() {
+  if (!isActive()) return;
+  if (document.visibilityState === "hidden") {
+    _pauseCanvasTicker();
+  } else {
+    _resumeCanvasTicker();
+  }
+}
+
 /** Activate the mobile UI: hide the desktop interface and render the shell. */
 export function activateMobile() {
   if (shell) return;
   syncViewportWidth();
   window.addEventListener("resize", syncViewportWidth);
+  document.addEventListener("visibilitychange", _onVisibilityChange);
+  throttleCanvas();
   document.body.classList.add("dc20-mobile-active");
   shell = new MobileShell();
   shell.render(true);
@@ -42,6 +103,11 @@ export function activateMobile() {
 /** Deactivate the mobile UI and restore the desktop interface. */
 export function deactivateMobile() {
   window.removeEventListener("resize", syncViewportWidth);
+  document.removeEventListener("visibilitychange", _onVisibilityChange);
+  unthrottleCanvas();
+  // Ensure the ticker is running again if we paused it while hidden.
+  const t = _getCanvasTicker();
+  if (t && !t.started) t.start();
   document.body.classList.remove("dc20-mobile-active");
   shell?.close();
   shell = null;
@@ -104,9 +170,15 @@ Hooks.once("ready", () => {
 });
 
 // Keep the Navigation tab in sync with the game state.
-for (const hook of ["createToken", "deleteToken", "updateToken", "canvasReady", "controlToken"]) {
+for (const hook of ["createToken", "deleteToken", "updateToken", "controlToken"]) {
   Hooks.on(hook, requestRefresh);
 }
+// canvasReady fires when a new scene is loaded — refresh the shell AND
+// re-apply the ticker throttle (the new canvas starts at 60fps by default).
+Hooks.on("canvasReady", () => {
+  requestRefresh();
+  if (isActive()) throttleCanvas();
+});
 Hooks.on("targetToken", requestRefresh);
 Hooks.on("updateActor", requestRefresh);
 
