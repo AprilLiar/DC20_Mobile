@@ -14,7 +14,7 @@
 import { MODULE_ID, ALT_SHEET_MODULE_ID } from "../const.mjs";
 import { getOwnedCharacters, getSelectedActor, setSelectedActor } from "../state.mjs";
 import { getActorToken, stepToken } from "../movement.mjs";
-import { getSceneTokens, isTargeted, toggleTarget } from "../targeting.mjs";
+import { getSceneTokens, isTargeted, toggleTarget, getTargetCount } from "../targeting.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -103,7 +103,7 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
       hasToken: !!token,
       targetPanelOpen: this.targetPanelOpen,
       sceneTokens,
-      targetCount: game.user.targets.size,
+      targetCount: getTargetCount(),
       altSheetAvailable: isAltSheetAvailable(),
       altSheetModuleId: ALT_SHEET_MODULE_ID,
     };
@@ -192,8 +192,8 @@ export class MobileShell extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Toggle targeting for a token, then refresh the list highlight. */
   _onToggleTarget(tokenId) {
-    const token = canvas.tokens?.get(tokenId);
-    toggleTarget(token);
+    const tokenDoc = game.scenes.active?.tokens.get(tokenId);
+    toggleTarget(tokenDoc);
     this.render();
   }
 
