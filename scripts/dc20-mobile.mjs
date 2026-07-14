@@ -1,13 +1,9 @@
 /**
  * DC20 Mobile — module entry point.
  *
- * Registers the per-client mobile-mode setting, then — before the Foundry
- * canvas initialises — sets core.noCanvas=true for mobile clients. This
- * eliminates the Pixi.js/WebGL context entirely, which is the root cause of
- * iOS tab kills under memory pressure. One automatic reload happens on first
- * activation; every subsequent load starts with noCanvas already set.
- *
- * All movement/targeting code uses Scene/TokenDocument APIs (no canvas needed).
+ * Registers the per-client mobile-mode setting, evaluates device detection on
+ * ready, and toggles the full-screen mobile UI (MobileShell) accordingly. While
+ * active, a body class hides the desktop interface via CSS.
  */
 
 import { MODULE_ID, ALT_SHEET_MODULE_ID } from "./const.mjs";
@@ -25,35 +21,60 @@ export function isActive() {
 }
 
 /**
- * Measure the actual browser viewport width (excludes scrollbar) and publish
- * it as --dc20-mobile-vw so CSS can use it instead of 100vw.
+ * Measure the actual browser viewport width (excludes scrollbar, matches what
+ * the device truly renders) and publish it as --dc20-mobile-vw so CSS can use
+ * it instead of 100vw, which can overshoot by the scrollbar width.
  */
 function syncViewportWidth() {
   document.documentElement.style.setProperty("--dc20-mobile-vw", window.innerWidth + "px");
 }
 
 /* --------------------------------------------------------------------------
- * noCanvas management
+ * Canvas ticker management
  *
- * We set core.noCanvas=true for mobile clients so Pixi.js/WebGL never
- * initialises. This is the only reliable fix for iOS killing tabs under GPU
- * memory pressure. We record in localStorage whether WE enabled it so that
- * turning mobile mode off restores the previous state without wiping a value
- * the user may have set themselves.
+ * The Pixi.js ticker keeps running at 60fps even when the canvas is hidden by
+ * CSS. On iOS, the GPU load this creates causes the browser to kill the tab
+ * under memory pressure. While mobile mode is active we FULLY STOP the ticker
+ * (rather than merely throttling it) so Pixi does zero rendering work. The
+ * WebGL context still exists but is completely idle, using negligible memory.
+ * We save and restore the original maxFPS so normal rendering resumes if mobile
+ * mode is later switched off. We also stop the ticker when the page is
+ * backgrounded, and re-stop it on return (in case Foundry restarted it).
  * -------------------------------------------------------------------------- */
-const _NO_CANVAS_OWNER_KEY = "dc20-mobile.ownsNoCanvas";
+let _savedTickerMaxFPS = null;
 
-function _applyNoCanvas() {
-  if (game.settings.get("core", "noCanvas")) return; // already off — nothing to do
-  localStorage.setItem(_NO_CANVAS_OWNER_KEY, "1");
-  game.settings.set("core", "noCanvas", true); // triggers Foundry's debounced reload
+function _getCanvasTicker() {
+  return canvas?.app?.ticker ?? null;
 }
 
-function _restoreCanvas() {
-  if (!localStorage.getItem(_NO_CANVAS_OWNER_KEY)) return; // we didn't set it
-  localStorage.removeItem(_NO_CANVAS_OWNER_KEY);
-  if (game.settings.get("core", "noCanvas")) {
-    game.settings.set("core", "noCanvas", false); // triggers Foundry's debounced reload
+function throttleCanvas() {
+  const t = _getCanvasTicker();
+  if (!t) return;
+  _savedTickerMaxFPS = t.maxFPS;
+  if (t.started) t.stop(); // full stop — zero GPU work while canvas is hidden
+}
+
+function unthrottleCanvas() {
+  const t = _getCanvasTicker();
+  if (!t) return;
+  t.maxFPS = _savedTickerMaxFPS ?? 0;
+  _savedTickerMaxFPS = null;
+  if (!t.started) t.start();
+}
+
+/**
+ * Page Visibility handler. When iOS backgrounds the tab we ensure the ticker
+ * stays stopped; if something restarted it we stop it again on return.
+ */
+function _onVisibilityChange() {
+  if (!isActive()) return;
+  const t = _getCanvasTicker();
+  if (!t) return;
+  if (document.visibilityState === "hidden") {
+    if (t.started) t.stop();
+  } else {
+    // Re-stop in case Foundry restarted the ticker while the page was hidden.
+    if (t.started) t.stop();
   }
 }
 
@@ -62,6 +83,8 @@ export function activateMobile() {
   if (shell) return;
   syncViewportWidth();
   window.addEventListener("resize", syncViewportWidth);
+  document.addEventListener("visibilitychange", _onVisibilityChange);
+  throttleCanvas();
   document.body.classList.add("dc20-mobile-active");
   shell = new MobileShell();
   shell.render(true);
@@ -70,6 +93,8 @@ export function activateMobile() {
 /** Deactivate the mobile UI and restore the desktop interface. */
 export function deactivateMobile() {
   window.removeEventListener("resize", syncViewportWidth);
+  document.removeEventListener("visibilitychange", _onVisibilityChange);
+  unthrottleCanvas();
   document.body.classList.remove("dc20-mobile-active");
   shell?.close();
   shell = null;
@@ -93,27 +118,8 @@ Hooks.once("init", () => {
       on: "DC20MOBILE.Settings.MobileMode.On",
       off: "DC20MOBILE.Settings.MobileMode.Off",
     },
-    onChange: () => {
-      if (shouldActivate()) {
-        if (!game.settings.get("core", "noCanvas")) {
-          _applyNoCanvas(); // triggers reload to set noCanvas
-        } else if (!isActive()) {
-          activateMobile(); // noCanvas already set, just show the UI
-        }
-      } else {
-        if (isActive()) deactivateMobile();
-        _restoreCanvas(); // remove noCanvas if we set it (triggers reload)
-      }
-    },
+    onChange: () => (shouldActivate() ? activateMobile() : deactivateMobile()),
   });
-
-  // Apply (or restore) noCanvas before the canvas initialises — this is the
-  // correct moment because canvas init happens after all init hooks run.
-  if (shouldActivate()) {
-    _applyNoCanvas(); // no-op if already set; otherwise sets + queues reload
-  } else {
-    _restoreCanvas(); // no-op if we didn't set it; otherwise restores + reloads
-  }
 
   // v14 moved loadTemplates; fall back to the global for older builds.
   const loadTemplates = foundry.applications.handlebars?.loadTemplates ?? globalThis.loadTemplates;
@@ -150,11 +156,17 @@ Hooks.once("ready", () => {
   if (shouldActivate()) activateMobile();
 });
 
-// Keep the Navigation tab in sync with game-state changes.
-// Only document-level hooks are used — canvas hooks don't fire in noCanvas mode.
-for (const hook of ["createToken", "deleteToken", "updateToken"]) {
+// Keep the Navigation tab in sync with the game state.
+for (const hook of ["createToken", "deleteToken", "updateToken", "controlToken"]) {
   Hooks.on(hook, requestRefresh);
 }
+// canvasReady fires when a new scene is loaded — refresh the shell AND
+// re-apply the ticker stop (the new canvas starts at full fps by default).
+Hooks.on("canvasReady", () => {
+  requestRefresh();
+  if (isActive()) throttleCanvas();
+});
+Hooks.on("targetToken", requestRefresh);
 Hooks.on("updateActor", requestRefresh);
 
 /**

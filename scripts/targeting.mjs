@@ -1,54 +1,37 @@
 /**
  * Targeting helpers for the Navigation tab.
  *
- * Works entirely through Scene/TokenDocument APIs so it is compatible with
- * noCanvas mode. We maintain our own Set of targeted token IDs because
- * game.user.targets (canvas Token objects) is unavailable without canvas.
+ * Uses Foundry's core targeting (`Token#setTarget` / `User#targets`). Multiple
+ * targets may be toggled on/off independently, chosen from all tokens on the
+ * active scene.
  */
-
-/** @type {Set<string>} Token IDs currently targeted by this user. */
-const _targets = new Set();
 
 /**
- * All non-hidden TokenDocuments on the active scene, sorted by name.
- * @returns {TokenDocument[]}
+ * All non-hidden tokens on the active scene, sorted by name.
+ * @returns {Token[]}
  */
 export function getSceneTokens() {
-  const scene = game.scenes?.active;
-  if (!scene) return [];
-  return scene.tokens.contents
-    .filter((t) => !t.hidden)
+  if (!canvas?.ready) return [];
+  return canvas.tokens.placeables
+    .filter((t) => !t.document.hidden)
     .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
 }
 
 /**
- * Whether the current user is currently targeting the given TokenDocument.
- * @param {TokenDocument} tokenDoc
+ * Whether the current user is currently targeting the given token.
+ * @param {Token} token
  * @returns {boolean}
  */
-export function isTargeted(tokenDoc) {
-  return _targets.has(tokenDoc.id);
+export function isTargeted(token) {
+  return game.user.targets.has(token);
 }
 
 /**
- * The number of tokens currently targeted by this user.
- * @returns {number}
+ * Toggle the current user's target state for a token (multi-target: does not
+ * release other targets).
+ * @param {Token} token
  */
-export function getTargetCount() {
-  return _targets.size;
-}
-
-/**
- * Toggle the current user's target state for a TokenDocument (multi-target:
- * does not release other targets).
- * @param {TokenDocument|null} tokenDoc
- */
-export function toggleTarget(tokenDoc) {
-  if (!tokenDoc) return;
-  if (_targets.has(tokenDoc.id)) {
-    _targets.delete(tokenDoc.id);
-  } else {
-    _targets.add(tokenDoc.id);
-  }
-  game.user.updateTokenTargets([..._targets]);
+export function toggleTarget(token) {
+  if (!token) return;
+  token.setTarget(!isTargeted(token), { user: game.user, releaseOthers: false });
 }
